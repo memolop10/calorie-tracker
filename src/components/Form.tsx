@@ -1,22 +1,54 @@
 import { useState } from "react"
+import { v4 as uuidv4 } from 'uuid'
 import { categories } from "../data/categories"
+import type { ActivityInterface } from "../types"
+import type { ActivityActions } from "../reducers/activity-reducer"
 
-const Form = () => {
-  const [activity, setActivity] = useState({
-    category: 1,
-    name : '',
-    calories: 0
-  })
+type FormProps = {
+  dispatch: React.Dispatch<ActivityActions>
+}
 
-  const handleChange = (e) => {
+const initialState : ActivityInterface = {
+  id: uuidv4(),
+  category: 1,
+  nameActivity : '',
+  calories: 0
+}
+
+const Form = ({ dispatch }: FormProps) => {
+  const [activity, setActivity] = useState<ActivityInterface>(initialState)
+
+  const handleChange = (e : React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const isNumberField = ['calories','category'].includes(e.target.id)
     setActivity({
       ...activity,
-      [e.target.name]: e.target.value
+      [e.target.name]: isNumberField ? Number(e.target.value) : e.target.value
     })
   }
+
+  const isValidActivity = () => {
+    const { nameActivity, calories } = activity
+    return nameActivity.trim() !== '' && calories > 0
+  }
+
+  const handleSubmit: React.SubmitEventHandler<HTMLFormElement> = (e) => {
+    e.preventDefault()
+    dispatch({
+      type: 'SAVE_ACTIVITY',
+      payload: { newActivity: activity }
+    })
+    setActivity({
+      ...initialState,
+      id: uuidv4()
+    })
+  }
+
+
   return (
     <form 
-      className="bg-white space-y-5 p-10 rounded-lg shadow">
+      className="bg-white space-y-5 p-10 rounded-lg shadow"
+      onSubmit={ handleSubmit }  
+    >
       <div className="grid grid-cols-1 gap-3">
         <label htmlFor="category" className="font-bold text-sm text-gray-700">Category:</label>
         <select
@@ -31,7 +63,7 @@ const Form = () => {
                     key={category.id} 
                     value={category.id}
                 >
-                        {category.name}
+                    {category.name}
                 </option>  
             ))}
         </select>
@@ -41,10 +73,10 @@ const Form = () => {
         <input
             className="border border-slate-300 p-2 rounded-lg"
             type="text"
-            name="name"
+            name="nameActivity"
             id="name"
             placeholder="Ej. Comida, Jugos, Ensalada, Ejecicio"
-            value={activity.name}
+            value={activity.nameActivity}
             onChange={handleChange}
         />  
       </div>
@@ -62,9 +94,10 @@ const Form = () => {
       </div>
 
       <input    
-        type="submit" 
-        className="bg-gray-800 hover:bg-gray-900 w-full p-2 font-bold uppercase text-white cursor-pointer"
-        value="Save"
+        type="submit"
+        className="bg-gray-800 hover:bg-gray-900 w-full p-2 font-bold uppercase text-white cursor-pointer disabled:opacity-10"
+        value={ activity.category === 1 ? 'Agregar comida' : 'Agregar ejercicio' }
+        disabled = { !isValidActivity() }
       />
     </form>
   )
